@@ -1,0 +1,150 @@
+# Workflow Name
+name: push and deploy geocore containers to artifact registry and cloud run
+
+# Workflow Triggers
+on:
+  # Triggered on push of a new tag
+  push:
+    tags:
+      - 'v*.*.*'
+
+# Workflow Environment Variables
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT }}
+  REGION: asia-south1
+  # SACCOUNT: ${{ secrets.GCP_SA_GEOCORE }}
+
+# Workflow Jobs
+jobs:
+
+  run-geocore-lite:
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout Git Repository
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      # Set Tag Environment Variable
+      - name: Set Tag Environment Value
+        run: echo "TAG_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+
+      # Configure gcloud SDK
+      - name: Setup Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v0.2.0
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+          service_account_key: ${{ secrets.GCP_CREDENTIALS }}
+
+      # Authorize Docker for gcloud Artifact Registry
+      - name: Authorize Docker push
+        run: gcloud auth configure-docker {{ env.REGION }}
+
+      # Build Docker Image
+      - name: Build Docker Image
+        working-directory: ./geocore-topography
+        run: docker build -t {{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/geocore/geocore-lite:{{ env.TAG_VERSION }}
+
+      # Push Docker Image to Artifact Registry
+      - name: Push Docker Image
+        run: docker push {{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/geocore/geocore-lite:{{ env.TAG_VERSION }}
+
+      # Deploy to Cloud Run
+
+  run-geocore-analytics:
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout Git Repository
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      # Set Tag Environment Variable
+      - name: Set Tag Environment Value
+        run: echo "TAG_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+
+      # Configure gcloud SDK
+      - name: Setup Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v0.2.0
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+          service_account_key: ${{ secrets.GCP_CREDENTIALS }}
+
+      # Authorize Docker for gcloud Artifact Registry
+      - name: Authorize Docker push
+        run: gcloud auth configure-docker {{ env.REGION }}
+
+      # Build Docker Image
+      - name: Build Docker Image
+        working-directory: ./geocore-analytics
+        run: docker build -t {{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/geocore/geocore-analytics:{{ env.TAG_VERSION }}
+
+      # Push Docker Image to Artifact Registry
+      - name: Push Docker Image
+        run: docker push {{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/geocore/geocore-analytics:{{ env.TAG_VERSION }}
+
+      # Deploy to Cloud Run
+
+  run-geocore-spectral:
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout Git Repository
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      # Set Tag Environment Variable
+      - name: Set Tag Environment Value
+        run: echo "TAG_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+
+      # Configure gcloud SDK
+      - name: Setup Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v0.2.0
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+          service_account_key: ${{ secrets.GCP_CREDENTIALS }}
+
+      # Authorize Docker for gcloud Artifact Registry
+      - name: Authorize Docker push
+        run: gcloud auth configure-docker {{ env.REGION }}
+
+      # Build Docker Image
+      - name: Build Docker Image
+        working-directory: ./geocore-spectral
+        run: docker build -t {{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/geocore/geocore-spectral:{{ env.TAG_VERSION }}
+
+      # Push Docker Image to Artifact Registry
+      - name: Push Docker Image
+        run: docker push {{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/geocore/geocore-spectral:{{ env.TAG_VERSION }}
+
+      # Deploy to Cloud Run
+
+  run-geocore-topography:
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout Git Repository
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      # Set Tag Environment Variable
+      - name: Set Tag Environment Value
+        run: echo "TAG_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+
+      # Configure gcloud SDK
+      - name: Setup Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v0.2.0
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+          service_account_key: ${{ secrets.GCP_CREDENTIALS }}
+
+      # Authorize Docker for gcloud Artifact Registry
+      - name: Authorize Docker push
+        run: gcloud auth configure-docker {{ env.REGION }}
+
+      # Build Docker Image
+      - name: Build Docker Image
+        working-directory: ./geocore-topography
+        run: docker build -t {{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/geocore/geocore-topography:{{ env.TAG_VERSION }}
+
+      # Push Docker Image to Artifact Registry
+      - name: Push Docker Image
+        run: docker push {{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/geocore/geocore-topography:{{ env.TAG_VERSION }}
+
+      # Deploy to Cloud Run
