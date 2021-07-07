@@ -49,6 +49,6 @@ jobs:
 
       # Push Docker Image to Artifact Registry
       - name: Push Docker Image
-        run: docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/geocore/geocore-${{ matrix.services }}:${{ env.TAG_VERSION }}
+        run: docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/geocore/${{ matrix.services }}:${{ env.TAG_VERSION }}
 
       # Deploy to Cloud Run
