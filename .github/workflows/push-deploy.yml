@@ -41,7 +41,7 @@ jobs:
 
       # Authorize Docker for gcloud Artifact Registry
       - name: Authorize Docker push
-        run: gcloud auth configure-docker ${{ env.REGION }}
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
 
       # Build Docker Image
       - name: Build Docker Image
