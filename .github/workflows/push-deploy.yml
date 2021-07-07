@@ -37,16 +37,16 @@ jobs:
 
       # Authorize Docker for gcloud Artifact Registry
       - name: Authorize Docker push
-        run: gcloud auth configure-docker {{ env.REGION }}
+        run: gcloud auth configure-docker ${{ env.REGION }}
 
       # Build Docker Image
       - name: Build Docker Image
         working-directory: ./geocore-topography
-        run: docker build -t {{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/geocore/geocore-lite:{{ env.TAG_VERSION }}
+        run: docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/geocore/geocore-lite:${{ env.TAG_VERSION }}
 
       # Push Docker Image to Artifact Registry
       - name: Push Docker Image
-        run: docker push {{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/geocore/geocore-lite:{{ env.TAG_VERSION }}
+        run: docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/geocore/geocore-lite:${{ env.TAG_VERSION }}
 
       # Deploy to Cloud Run
 
@@ -70,16 +70,16 @@ jobs:
 
       # Authorize Docker for gcloud Artifact Registry
       - name: Authorize Docker push
-        run: gcloud auth configure-docker {{ env.REGION }}
+        run: gcloud auth configure-docker ${{ env.REGION }}
 
       # Build Docker Image
       - name: Build Docker Image
         working-directory: ./geocore-analytics
-        run: docker build -t {{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/geocore/geocore-analytics:{{ env.TAG_VERSION }}
+        run: docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/geocore/geocore-analytics:${{ env.TAG_VERSION }}
 
       # Push Docker Image to Artifact Registry
       - name: Push Docker Image
-        run: docker push {{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/geocore/geocore-analytics:{{ env.TAG_VERSION }}
+        run: docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/geocore/geocore-analytics:${{ env.TAG_VERSION }}
 
       # Deploy to Cloud Run
 
@@ -103,16 +103,16 @@ jobs:
 
       # Authorize Docker for gcloud Artifact Registry
       - name: Authorize Docker push
-        run: gcloud auth configure-docker {{ env.REGION }}
+        run: gcloud auth configure-docker ${{ env.REGION }}
 
       # Build Docker Image
       - name: Build Docker Image
         working-directory: ./geocore-spectral
-        run: docker build -t {{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/geocore/geocore-spectral:{{ env.TAG_VERSION }}
+        run: docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/geocore/geocore-spectral:${{ env.TAG_VERSION }}
 
       # Push Docker Image to Artifact Registry
       - name: Push Docker Image
-        run: docker push {{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/geocore/geocore-spectral:{{ env.TAG_VERSION }}
+        run: docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/geocore/geocore-spectral:${{ env.TAG_VERSION }}
 
       # Deploy to Cloud Run
 
@@ -136,15 +136,15 @@ jobs:
 
       # Authorize Docker for gcloud Artifact Registry
       - name: Authorize Docker push
-        run: gcloud auth configure-docker {{ env.REGION }}
+        run: gcloud auth configure-docker ${{ env.REGION }}
 
       # Build Docker Image
       - name: Build Docker Image
         working-directory: ./geocore-topography
-        run: docker build -t {{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/geocore/geocore-topography:{{ env.TAG_VERSION }}
+        run: docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/geocore/geocore-topography:${{ env.TAG_VERSION }}
 
       # Push Docker Image to Artifact Registry
       - name: Push Docker Image
-        run: docker push {{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/geocore/geocore-topography:{{ env.TAG_VERSION }}
+        run: docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/geocore/geocore-topography:${{ env.TAG_VERSION }}
 
       # Deploy to Cloud Run
