@@ -1,4 +1,4 @@
-# geocore-lite
+# geocore-chrono
 
 ## Runtime
 Platform: **Google Cloud Platform**  

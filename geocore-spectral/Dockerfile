@@ -3,8 +3,6 @@ FROM python:3.9-slim
 
 # Set environment variable for app root directory
 ENV APPDIR /app
-# Set environment variable for app name
-ENV APPNAME geocore-spectral
 # Set environment variable for port binding
 ENV PORT 8080
 # Enable unbuffered outputs for realtime Cloud Logging
