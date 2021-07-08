@@ -23,7 +23,6 @@ Earth Engine Credentials (Stored on Secret Manager)
 ## Endpoints
 ### /trend
 ### /stat
-### /cloud
 
 ## Deployment
 !todo

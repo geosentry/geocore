@@ -66,23 +66,11 @@ class Stat(flask_restful.Resource):
 
         return f"complete", 200
 
-class Cloud(flask_restful.Resource):
-
-    def post(self):
-        """ The runtime for when the '/cloud' endpoint recieves a POST request """
-        logger = RunLogger("cloud")
-
-        request = flask.request.get_json()
-        logger.flush("INFO", f"{request}")
-
-        return f"complete", 200
-
 app = flask.Flask(__name__)
 api = flask_restful.Api(app)
 
 api.add_resource(Trend, '/trend')
 api.add_resource(Stat, '/stat')
-api.add_resource(Cloud, '/cloud')
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
