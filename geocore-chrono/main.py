@@ -6,7 +6,6 @@ Google Cloud Platform - Cloud Run
 geocore-chrono service
 """
 import os
-import json
 import flask
 import flask_restful
 
@@ -35,6 +34,7 @@ class LogEntry:
         A method of LogEntry that creates and flushes the built log to Cloud Logging as
         a structured log given that it is called within a Cloud Run/Functions Service.
         The method accepts a log severity string and a log message string.
+
         Accepted log severity values are - EMERGENCY, ALERT, CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG and DEFAULT.
         Refer to https://cloud.google.com/logging/docs/reference/v2/rest/v2/LogEntry#logseverity for more information.
         """

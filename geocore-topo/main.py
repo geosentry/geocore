@@ -6,12 +6,11 @@ Google Cloud Platform - Cloud Run
 geocore-topo service
 """
 import os
-import json
 import flask
 import flask_restful
 
-class RunLogger:
-    """ Class that builds serverless log compliant with Google Cloud Platform """
+class LogEntry:
+    """ A class that represents a serverless log compliant with Google Cloud Platform. """
 
     service = "geocore-topo"
 
@@ -22,8 +21,7 @@ class RunLogger:
 
         self.baselog = {
             "trace": self.logtrace, 
-            "workflow": self.workflow, 
-            "service":self.service, 
+            "service":self.service,
             "logging.googleapis.com/trace": flask.request.headers.get('X-Cloud-Trace-Context')
         }
 
@@ -33,22 +31,26 @@ class RunLogger:
 
     def flush(self, severity: str, message: str):
         """
-        A method that creates and flushes the built log to Cloud Logging as a structured 
-        log given that it is called within a Cloud Run/Functions Service. 
+        A method of LogEntry that creates and flushes the built log to Cloud Logging as
+        a structured log given that it is called within a Cloud Run/Functions Service.
         The method accepts a log severity string and a log message string.
 
         Accepted log severity values are - EMERGENCY, ALERT, CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG and DEFAULT.
         Refer to https://cloud.google.com/logging/docs/reference/v2/rest/v2/LogEntry#logseverity for more information.
         """
+        import json
+
+        self.addtrace("execution ended.")
         logentry = dict(severity=severity, message=message)
         logentry.update(self.baselog)
+
         print(json.dumps(logentry))
 
 class SCL(flask_restful.Resource):
 
     def post(self):
         """ The runtime for when the '/scl' endpoint recieves a POST request """
-        logger = RunLogger("scl")
+        logger = LogEntry("scl")
 
         request = flask.request.get_json()
         logger.flush("INFO", f"{request}")
@@ -59,7 +61,7 @@ class Elevation(flask_restful.Resource):
 
     def post(self):
         """ The runtime for when the '/elevation' endpoint recieves a POST request """
-        logger = RunLogger("elevation")
+        logger = LogEntry("elevation")
 
         request = flask.request.get_json()
         logger.flush("INFO", f"{request}")
