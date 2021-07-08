@@ -1,4 +1,4 @@
-# geocore-topography
+# geocore-topo
 
 ## Runtime
 Platform: **Google Cloud Platform**  
@@ -18,7 +18,6 @@ Default Application Credentials
 Earth Engine Credentials (Stored on Secret Manager)
 - **Earth Engine** (Registered as an Earth Engine SA)
 - **Storage Object Admin** (Cloud Storage)
-
 
 ## Endpoints
 ### /scl

@@ -3,7 +3,7 @@ GeoSentry GeoCore API
 
 Google Cloud Platform - Cloud Run
 
-geocore-topography service
+geocore-topo service
 """
 import os
 import json
@@ -13,7 +13,7 @@ import flask_restful
 class RunLogger:
     """ Class that builds serverless log compliant with Google Cloud Platform """
 
-    service = "geocore-topography"
+    service = "geocore-topo"
 
     def __init__(self, workflow: str) -> None:
         """ Initialization Method """
