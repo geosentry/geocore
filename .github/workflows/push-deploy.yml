@@ -21,7 +21,7 @@ jobs:
 
     strategy:
       matrix:
-        services: [geocore-lite, geocore-analytics, geocore-spectral, geocore-topography]
+        services: [geocore-analytics, geocore-spatio, geocore-chrono, geocore-spectral, geocore-topo]
 
     steps:
       # Checkout Git Repository
