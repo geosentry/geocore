@@ -64,15 +64,89 @@ class Meta(flask_restful.Resource):
         return f"complete", 200
 
 class Reshape(flask_restful.Resource):
+    """ RESTful resource for the '/reshape' endpoint. """
 
     def post(self):
-        """ The runtime for when the '/reshape' endpoint recieves a POST request """
-        logger = LogEntry("reshape")
+        """ RESTful POST """
+        # Create a LogEntry object for the reshape workflow
+        log = LogEntry("reshape")
 
+        # Parse the request JSON
         request = flask.request.get_json()
-        logger.flush("INFO", f"{request}")
+        log.addtrace("request parsed.")
 
-        return f"complete", 200
+        # Retrieve the 'geojson' key from the request
+        geojson = request.get("geojson")
+        # Check that geojson is a dictionary.
+        if not isinstance(geojson, dict):
+            # log and return the error
+            log.addtrace("could not parse geojson.")
+            log.flush("ERROR", "runtime terminated")
+            return {"error": f"reshape failed. could not parse geojson. not a dictionary"}, 400
+
+        log.addtrace("geojson retrieved.")
+
+        try:
+            import json
+            from terrarium import spatial
+
+            # Generate a shape geometry from the geojson 
+            shape = spatial.generate_shapely_geometry(json.dumps(geojson))
+            log.addtrace("shape geometry generated.")
+
+        except RuntimeError as e:
+            # log and return the error
+            log.addtrace("could not generate shape geometry.")
+            log.flush("ERROR", "runtime terminated")
+            return {"error": f"reshape failed. could not generate shape geometry. {e}"}, 400
+
+        try:
+            # Check the type of the shape geometry and 
+            # call the appropriate reshape runtime
+
+            if shape.type == "Polygon":
+                log.addtrace("polygon geometry detected.")
+                reshaped = spatial.reshape_polygon(shape)
+
+            elif shape.type == "Point":
+                log.addtrace("point geometry detected.")
+                reshaped = spatial.reshape_point(shape)
+
+            elif shape.type == "LineString":
+                log.addtrace("linestring geometry detected.")
+                reshaped = spatial.reshape_linestring(shape)
+
+            else:
+                log.addtrace("invalid geometry detected.")
+                log.flush("ERROR", "runtime terminated")
+                return {"error": f"reshape failed. unsupported geometry type: {shape.type}"}, 400
+
+            log.addtrace("geometry reshaped.")
+
+        except RuntimeError as e:
+            # log and return the error
+            log.addtrace("could not reshape geometry.")
+            log.flush("ERROR", "runtime error")
+            return {"error": f"reshape failed. could not reshape geometry. {e}"}, 500
+
+        try:
+            # Retrieve the bounds of the reshaped geometry
+            bounds = list(reshaped.bounds)
+            # Generate the areas of the reshaped geometry
+            areas = spatial.generate_area(reshaped)
+            # Isolate the square metres area value
+            sqm = areas["SQM"]
+        
+        except RuntimeError as e:
+            # log and return the error
+            log.addtrace("could not generate reshaped data.")
+            log.flush("ERROR", "runtime error")
+            return {"error": f"reshape failed. could not generate reshaped data. {e}"}, 500
+
+        # log the generated values and return them
+        log.addtrace(f"reshape data. bounds - {bounds}. area - {sqm}")
+        log.flush("INFO", "runtime complete")
+        return {"bounds": bounds, "areas": areas}, 200
 
 class Cloud(flask_restful.Resource):
 
