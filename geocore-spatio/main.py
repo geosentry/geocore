@@ -21,9 +21,15 @@ class LogEntry:
 
         self.baselog = {
             "trace": self.logtrace, 
-            "service":self.service,
-            "logging.googleapis.com/trace": flask.request.headers.get('X-Cloud-Trace-Context')
+            "service":self.service
         }
+
+        project = os.environ.get('GCP_PROJECT')
+        reqtrace = flask.request.headers.get('X-Cloud-Trace-Context')
+
+        if reqtrace and project:
+            tracedata = f"projects/{project}/traces/{reqtrace.split('/')[0]}"
+            self.baselog.update({"logging.googleapis.com/trace": tracedata})
 
     def addtrace(self, trace: str):
         """ A method that adds a trace string to the list of logtraces. """
