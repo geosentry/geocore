@@ -1,5 +1,5 @@
 # Workflow Name
-name: push and deploy geocore containers to artifact registry and cloud run
+name: build, push, deploy and register geocore services
 
 # Workflow Triggers
 on:
@@ -40,15 +40,30 @@ jobs:
           service_account_key: ${{ secrets.GCP_CREDENTIALS }}
 
       # Authorize Docker for gcloud Artifact Registry
-      - name: Authorize Docker push
+      - name: Authorize Docker Push
         run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
 
       # Build Docker Image
-      - name: Build Docker Image
+      - name: Build Image
         run: docker build ./${{ matrix.services }} -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/geocore/${{ matrix.services }}:${{ env.TAG_VERSION }}
 
-      # Push Docker Image to Artifact Registry
-      - name: Push Docker Image
+      # Push Docker Image
+      - name: Push Image to Artifact Registry
         run: docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/geocore/${{ matrix.services }}:${{ env.TAG_VERSION }}
 
-      # Deploy to Cloud Run
+      # Deploy Service
+      - name: Deploy to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@main
+        with: 
+          service: ${{ matrix.services }}
+          region: ${{ env.REGION }}
+          env-vars: GCP_PROJECT=${{ env.PROJECT_ID }}, GCP_REGION=${{ env.REGION }} 
+          image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/geocore/${{ matrix.services }}:${{ env.TAG_VERSION }}
+
+      # Register Service
+      - name: Register with Service Directory
+        run: gcloud service-directory services update ${{ matrix.services }} \
+        --namespace geocore \
+        --location {{ env.REGION }} \
+        --annotations url="${{ steps.deploy.outputs.url }}"
