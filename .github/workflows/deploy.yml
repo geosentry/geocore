@@ -63,7 +63,8 @@ jobs:
 
       # Register Service
       - name: Register with Service Directory
-        run: gcloud service-directory services update ${{ matrix.services }} \
-        --namespace geocore \
-        --location ${{ env.REGION }} \
-        --annotations url="${{ steps.deploy.outputs.url }}"
+        run: | 
+        gcloud service-directory services update ${{ matrix.services }} \
+          --namespace geocore \
+          --location ${{ env.REGION }} \
+          --annotations url="${{ steps.deploy.outputs.url }}""
