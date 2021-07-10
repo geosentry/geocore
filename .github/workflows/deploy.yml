@@ -67,4 +67,4 @@ jobs:
         gcloud service-directory services update ${{ matrix.services }} \
           --namespace geocore \
           --location ${{ env.REGION }} \
-          --annotations url="${{ steps.deploy.outputs.url }}"
+          --annotations url=${{ steps.deploy.outputs.url }}
