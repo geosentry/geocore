@@ -22,8 +22,7 @@ Earth Engine Credentials (Stored on Secret Manager)
 ## Endpoints
 
 ### /reshape
-A **GeoCore** API function that reshapes a recieved *GeoJSON* geometry into it's square bounding box and returns its bounds and its area in sq.metres, sq.kilometres, hectares and acres.
-It supports ``Point``, ``Polygon`` and ``LineString`` geometries. Multi-feature GeoJSONs will not raise an error but only the first Feature will be reshaped. The different geometry types are handled as follows.
+A **GeoCore** API function that reshapes a recieved *GeoJSON* geometry into it's square bounding box and returns its bounds, centroid and its area in sq.metres, sq.kilometres, hectares and acres. It supports ``Point``, ``Polygon`` and ``LineString`` geometries. Multi-feature GeoJSONs will not raise an error but only the first Feature will be reshaped. The different geometry types are handled as follows.
 
 ``Point`` - Creates a square buffer of 2.5kms around the point.  
 ``Polygon`` & ``LineString`` - Creates a square bound around the geometry.
@@ -45,11 +44,16 @@ The *geojson* field must be a dictionary and contain the full contents of an RFC
         "SQKM": <float>,
         "HA": <float>,
         "ACRE": <float>
+    },
+    "centroid": {
+        "longitude": <float>,
+        "latitude": <float>
     }
 }
 ```
-The *bounds* field contains a list of float values that represent the west, south, east and north bound extents of the reshaped geometry.  
-The *areas* field contains a mapping of string units to the area of the reshaped geometry in that unit rounded to 3 decimal places.
+The *bounds* field contains a list of float values that represent the west, south, east and north bound extents of the reshaped geometry.    
+The *areas* field contains a mapping of string units to the area of the reshaped geometry in that unit rounded to 3 decimal places.  
+The *centroid* field contains a mapping of latitude and longitude string labels to their float values.
 
 ### /meta
 ### /cloud
