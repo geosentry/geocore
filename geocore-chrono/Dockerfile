@@ -17,10 +17,10 @@ COPY . $APPDIR
 # Change working directory
 WORKDIR $APPDIR
 
-# Update apt
-RUN apt update
+# Update apt-get
+RUN apt-get update
 # Install Git
-RUN apt install -y git
+RUN apt-get install -y git
 
 # Update pip
 RUN pip install --upgrade pip
