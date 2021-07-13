@@ -6,6 +6,7 @@ Google Cloud Platform - Cloud Run
 geocore-chrono service
 """
 import os
+import json
 import flask
 import flask_restful
 
@@ -44,8 +45,6 @@ class LogEntry:
         Accepted log severity values are - EMERGENCY, ALERT, CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG and DEFAULT.
         Refer to https://cloud.google.com/logging/docs/reference/v2/rest/v2/LogEntry#logseverity for more information.
         """
-        import json
-
         self.addtrace("execution ended.")
         logentry = dict(severity=severity, message=message)
         logentry.update(self.baselog)
@@ -83,4 +82,39 @@ api.add_resource(Check, '/check')
 api.add_resource(Select, '/select')
 
 if __name__ == '__main__':
+
+    try:
+        import google.cloud.secretmanager as secretmanager
+        # Create a Secret Manager Client
+        secrets = secretmanager.SecretManagerServiceClient()
+
+        # Retrieve the Project ID from the environment
+        project = os.environ["GCP_PROJECT"]
+
+        # Construct the name of the secret
+        secret_name = f"projects/{project}/secrets/earthengineone/versions/latest"
+        secret_data = secrets.access_secret_version(name=secret_name)
+        credentials = secret_data.payload.data
+
+    except KeyError as e:
+        logentry = dict(severity="EMERGENCY", message=f"could not obtain earth engine credentials. error: {e} environment variable not set")
+        print(json.dumps(logentry))
+        os.exit(0)
+
+    except Exception as e:
+        logentry = dict(severity="EMERGENCY", message=f"could not obtain earth engine credentials. error: {e}")
+        print(json.dumps(logentry))
+        os.exit(0)
+
+    try:
+        from terrarium import initialize
+        # Initialize Earth Engine Session
+        initialize(credentials)
+
+    except Exception as e:
+        logentry = dict(severity="EMERGENCY", message=f"could not initialize earth engine session. error: {e}")
+        print(json.dumps(logentry))
+        os.exit(0)
+
+    # Start the Flask App
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
