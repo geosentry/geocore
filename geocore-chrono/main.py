@@ -7,8 +7,17 @@ geocore-chrono service
 """
 import os
 import json
+import datetime
+
 import flask
 import flask_restful
+
+import ee
+from terrarium import temporal
+from terrarium import spatial
+from terrarium import initialize
+
+global EECREDENTIALS
 
 class LogEntry:
     """ A class that represents a serverless log compliant with Google Cloud Platform. """
@@ -84,7 +93,10 @@ class Check(flask_restful.Resource):
         log.addtrace(f"bounds and timestamp retrieved. bounds - {bounds}. timestamp - {timestamp}.")
 
         try:
-            from terrarium import spatial
+            # Initialize Earth Engine Session
+            if not ee.data._initialized:
+                initialize(EECREDENTIALS)
+
             # Generate an Earth Engine Geometry from the bounds
             geometry = spatial.generate_earthenginegeometry_frombounds(*bounds)
 
@@ -97,10 +109,6 @@ class Check(flask_restful.Resource):
         log.addtrace("geometry generated.")
 
         try:
-            import ee
-            import datetime
-            from terrarium import temporal
-
             # Obtain the datetime from the timestamp
             date = datetime.datetime.fromisoformat(timestamp)
             # Generate a daterange buffered around the date by 12 hours
@@ -159,7 +167,10 @@ class Select(flask_restful.Resource):
         log.addtrace(f"bounds and count retrieved. bounds - {bounds}. count - {count}.")
 
         try:
-            from terrarium import spatial
+            # Initialize Earth Engine Session
+            if not ee.data._initialized:
+                initialize(EECREDENTIALS)
+
             # Generate an Earth Engine Geometry from the bounds
             geometry = spatial.generate_earthenginegeometry_frombounds(*bounds)
 
@@ -172,10 +183,6 @@ class Select(flask_restful.Resource):
         log.addtrace("geometry generated.")
 
         try:
-            import ee
-            import datetime
-            from terrarium import temporal
-
             # Obtain the current datetime
             today = datetime.datetime.utcnow()
             # Generate a daterange going back 10 days from the current day
@@ -242,6 +249,8 @@ if __name__ == '__main__':
         secret_name = f"projects/{project}/secrets/earthengineone/versions/latest"
         secret_data = secrets.access_secret_version(name=secret_name)
         credentials = secret_data.payload.data
+        # Assign the credentials to the global
+        EECREDENTIALS = credentials
 
     except KeyError as e:
         logentry = dict(severity="EMERGENCY", message=f"could not obtain earth engine credentials. error: {e} environment variable not set")
@@ -254,9 +263,8 @@ if __name__ == '__main__':
         os.exit(0)
 
     try:
-        from terrarium import initialize
         # Initialize Earth Engine Session
-        initialize(credentials)
+        initialize(EECREDENTIALS)
 
     except Exception as e:
         logentry = dict(severity="EMERGENCY", message=f"could not initialize earth engine session. error: {e}")
