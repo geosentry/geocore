@@ -21,6 +21,25 @@ Earth Engine Credentials (Stored on Secret Manager)
 
 ## Endpoints
 ### /check
+A **GeoCore** API function that checks if an acquisition exists in a 12 hour buffer around a given timestamp for a given region. Expects bounding coordinates for the region and the timestamp as an ISO8601 timestamp.
+
+#### Request Format
+```json
+{
+    "bounds": [<float>, <float>, <float>, <float>],
+    "timestamp": <isostr>
+}
+```
+The *bounds* field must be a list of float values that represent the west, south, east and north bound extents of the region.  
+The *timestamp* field must be an ISO8601 string that represents the timestamp around which to check for an acquisition. 
+
+#### Response Format
+```json
+{
+    "check": <bool>
+}
+```
+The *check* field is a boolean that represents if an acquisition exists for a region within a 12 hour buffer around the *timestamp* in the request.
 
 ### /select
 A **GeoCore** API function that selects a certain number of acquisition dates for a region. Expects bounding coordinates for the region and the number of acquisition dates to select.
