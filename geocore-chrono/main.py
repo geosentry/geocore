@@ -6,6 +6,7 @@ Google Cloud Platform - Cloud Run
 geocore-chrono service
 """
 import os
+import sys
 import json
 import datetime
 
@@ -15,9 +16,42 @@ import flask_restful
 import ee
 from terrarium import temporal
 from terrarium import spatial
-from terrarium import initialize
 
-global EECREDENTIALS
+def init():
+    """ A function that fetches Earth Engine Credentials from Secret Manager and authenticates an Earth Engine Session with Terrarium. """
+    try:
+        import google.cloud.secretmanager as secretmanager
+        # Create a Secret Manager Client
+        secrets = secretmanager.SecretManagerServiceClient()
+
+        # Retrieve the Project ID from the environment
+        project = os.environ["GCP_PROJECT"]
+
+        # Construct the name of the secret
+        secret_name = f"projects/{project}/secrets/earthengineone/versions/latest"
+        secret_data = secrets.access_secret_version(name=secret_name)
+        credentials = secret_data.payload.data
+
+    except KeyError as e:
+        logentry = dict(severity="EMERGENCY", message=f"could not obtain earth engine credentials. error: {e} environment variable not set")
+        print(json.dumps(logentry))
+        sys.exit(0)
+
+    except Exception as e:
+        logentry = dict(severity="EMERGENCY", message=f"could not obtain earth engine credentials. error: {e}")
+        print(json.dumps(logentry))
+        sys.exit(0)
+
+    try:
+        from terrarium import initialize
+        # Initialize Earth Engine Session
+        initialize(credentials)
+
+    except Exception as e:
+        logentry = dict(severity="EMERGENCY", message=f"could not initialize earth engine session. error: {e}")
+        print(json.dumps(logentry))
+        sys.exit(0)
+
 
 class LogEntry:
     """ A class that represents a serverless log compliant with Google Cloud Platform. """
@@ -94,9 +128,7 @@ class Check(flask_restful.Resource):
 
         try:
             # Initialize Earth Engine Session
-            if not ee.data._initialized:
-                global EECREDENTIALS
-                initialize(EECREDENTIALS)
+            init() if not ee.data._initialized else None
 
             # Generate an Earth Engine Geometry from the bounds
             geometry = spatial.generate_earthenginegeometry_frombounds(*bounds)
@@ -169,9 +201,7 @@ class Select(flask_restful.Resource):
 
         try:
             # Initialize Earth Engine Session
-            if not ee.data._initialized:
-                global EECREDENTIALS
-                initialize(EECREDENTIALS)
+            init() if not ee.data._initialized else None
 
             # Generate an Earth Engine Geometry from the bounds
             geometry = spatial.generate_earthenginegeometry_frombounds(*bounds)
@@ -238,40 +268,8 @@ api.add_resource(Check, '/check')
 api.add_resource(Select, '/select')
 
 if __name__ == '__main__':
-
-    try:
-        import google.cloud.secretmanager as secretmanager
-        # Create a Secret Manager Client
-        secrets = secretmanager.SecretManagerServiceClient()
-
-        # Retrieve the Project ID from the environment
-        project = os.environ["GCP_PROJECT"]
-
-        # Construct the name of the secret
-        secret_name = f"projects/{project}/secrets/earthengineone/versions/latest"
-        secret_data = secrets.access_secret_version(name=secret_name)
-        credentials = secret_data.payload.data
-        # Assign the credentials to the global
-        EECREDENTIALS = credentials
-
-    except KeyError as e:
-        logentry = dict(severity="EMERGENCY", message=f"could not obtain earth engine credentials. error: {e} environment variable not set")
-        print(json.dumps(logentry))
-        os.exit(0)
-
-    except Exception as e:
-        logentry = dict(severity="EMERGENCY", message=f"could not obtain earth engine credentials. error: {e}")
-        print(json.dumps(logentry))
-        os.exit(0)
-
-    try:
-        # Initialize Earth Engine Session
-        initialize(EECREDENTIALS)
-
-    except Exception as e:
-        logentry = dict(severity="EMERGENCY", message=f"could not initialize earth engine session. error: {e}")
-        print(json.dumps(logentry))
-        os.exit(0)
+    # Initialize Earth Engine Session
+    init() if not ee.data._initialized else None
 
     # Start the Flask App
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
