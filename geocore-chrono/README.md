@@ -21,7 +21,27 @@ Earth Engine Credentials (Stored on Secret Manager)
 
 ## Endpoints
 ### /check
+
 ### /select
+A **GeoCore** API function that selects a certain number of acquisition dates for a region. Expects bounding coordinates for the region and the number of acquisition dates to select.
+
+#### Request Format
+```json
+{
+    "bounds": [<float>, <float>, <float>, <float>],
+    "count": <int>
+}
+```
+The *bounds* field must be a list of float values that represent the west, south, east and north bound extents of the region.  
+The *count* field must be an int that represents the number of acquisition dates to select. 
+
+#### Response Format
+```json
+{
+    "timestamps": <list><isostr>
+}
+```
+The *timestamps* field contains a list of ISO8601 timestamps that represent the acquisition dates for the region. The number of timestamps is determined by the *count* value in the request.
 
 ## Deployment
 All tags push to the **geosentry/geocore** repository will automatically trigger a workflow to build the docker image, push it to **Artifcat Registry** and deploy it to the **Cloud Run** and register the service with **Service Directory**.  
@@ -35,7 +55,7 @@ gcloud run deploy geocore-chrono \
 --service-account geocore@$PROJECTID.iam.gserviceaccount.com \
 --concurrency 20
 --timeout 60 \
---set-env-vars GCP_PROJECT=$PROJECTID GCP_REGION=$REGION \
+--set-env-vars GCP_PROJECT=$PROJECTID GCP_REGION=$REGION MAPS_GEOCODING_APIKEY=$MAPSAPIKEY \
 --image $REGION-docker.pkg.dev/$PROJECTID/geocore/geocore-chrono:$TAG 
 ```
 
