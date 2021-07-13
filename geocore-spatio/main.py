@@ -134,19 +134,26 @@ class Reshape(flask_restful.Resource):
             bounds = list(reshaped.bounds)
             # Generate the areas of the reshaped geometry
             areas = spatial.generate_area(reshaped)
+            # Generate the centroid of the reshaped geometry
+            centroid = spatial.generate_centroid(reshaped)
+
             # Isolate the square metres area value
             sqm = areas["SQM"]
+            # log the generated values
+            log.addtrace(f"reshape data. bounds - {bounds}. area - {sqm}. centroid - {centroid}.")
+            log.flush("INFO", "runtime complete")
+            # Return the reshape response
+            return {
+                "bounds": bounds, 
+                "areas": areas,
+                "centroid": centroid
+            }, 200
         
         except RuntimeError as e:
             # log and return the error
             log.addtrace("could not generate reshaped data.")
             log.flush("ERROR", "runtime error")
             return {"error": f"reshape failed. could not generate reshaped data. {e}"}, 500
-
-        # log the generated values and return them
-        log.addtrace(f"reshape data. bounds - {bounds}. area - {sqm}")
-        log.flush("INFO", "runtime complete")
-        return {"bounds": bounds, "areas": areas}, 200
 
 class Cloud(flask_restful.Resource):
 
