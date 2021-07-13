@@ -55,8 +55,27 @@ The *bounds* field contains a list of float values that represent the west, sout
 The *areas* field contains a mapping of string units to the area of the reshaped geometry in that unit rounded to 3 decimal places.  
 The *centroid* field contains a mapping of latitude and longitude string labels to their float values.
 
-### /meta
-### /cloud
+### /geocode
+A **GeoCore** API function that generates the location for a recieved coordinate pair with a reverse geocode lookup and returns it. Geocoding is done using the Google Maps Geocoding API.
+
+#### Request Format
+```json
+{
+    "coordinates": {
+        "longitude": <float>,
+        "latitude": <float>
+    }
+}
+```
+The *coordinate* field must be a dictionary with the keys *latitude* and *longitude* being float values that represents the coordinate pair.
+
+#### Response Format
+```json
+{
+    "geocode": <str>
+}
+```
+The *geocode* field contains a string that represents the location address of the coordinates.
 
 ## Deployment
 All tags push to the **geosentry/geocore** repository will automatically trigger a workflow to build the docker image, push it to **Artifcat Registry** and deploy it to the **Cloud Run** and register the service with **Service Directory**.  
@@ -70,7 +89,7 @@ gcloud run deploy geocore-spatio \
 --service-account geocore@$PROJECTID.iam.gserviceaccount.com \
 --concurrency 20
 --timeout 60 \
---set-env-vars GCP_PROJECT=$PROJECTID GCP_REGION=$REGION \
+--set-env-vars GCP_PROJECT=$PROJECTID GCP_REGION=$REGION MAPS_GEOCODING_APIKEY=$MAPSAPIKEY \
 --image $REGION-docker.pkg.dev/$PROJECTID/geocore/geocore-spatio:$TAG 
 ```
 

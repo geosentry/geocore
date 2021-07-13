@@ -52,16 +52,60 @@ class LogEntry:
 
         print(json.dumps(logentry))
 
-class Meta(flask_restful.Resource):
+class Geocode(flask_restful.Resource):
+    """ RESTful resource for the '/geocode' endpoint. """
 
     def post(self):
-        """ The runtime for when the '/meta' endpoint recieves a POST request """
-        logger = LogEntry("trend")
+        """ RESTful POST """
+        # Create a LogEntry object for the reshape workflow
+        log = LogEntry("reshape")
 
+        # Parse the request JSON
         request = flask.request.get_json()
-        logger.flush("INFO", f"{request}")
+        log.addtrace("request parsed.")
 
-        return f"complete", 200
+        # Retrieve the 'coordinates' key from the request
+        coordinates = request.get("coordinates")
+        # Check that geojson is a dictionary.
+        if not isinstance(coordinates, dict):
+            # log and return the error
+            log.addtrace("could not retrieve coordinates.")
+            log.flush("ERROR", "runtime terminated")
+            return {"error": f"geocode failed. could not retrieve coordinates. not a dictionary"}, 400
+
+        log.addtrace("coordinate retrieved.")
+
+        # Check if coordinates contains a longitude key
+        if "longitude" not in coordinates.keys():
+            # log and return the error
+            log.addtrace("missing longitude.")
+            log.flush("ERROR", "runtime terminated")
+            return {"error": f"reshape failed. coordinates missing longitude."}, 400
+
+        # Check if coordinates contains a latitude key
+        if "latitude" not in coordinates.keys():
+            # log and return the error
+            log.addtrace("missing latitude.")
+            log.flush("ERROR", "runtime terminated")
+            return {"error": f"reshape failed. coordinates missing latitude."}, 400
+
+        try:
+            from terrarium import spatial
+
+            # Genertae the geocode location for the coordinates
+            geocode = spatial.generate_location(**coordinates)
+            # log the generated values
+            log.addtrace(f"geocode location generated. location - {geocode}")
+            log.flush("INFO", "runtime complete")
+
+            # Return the geocode response
+            return {"geocode": geocode}, 200
+
+        except Exception as e:
+            # log and return the error
+            log.addtrace("could not generate gecode location.")
+            log.flush("ERROR", "runtime terminated")
+            return {"error": f"reshape failed. could not generate geocode location. {e}"}, 500
 
 class Reshape(flask_restful.Resource):
     """ RESTful resource for the '/reshape' endpoint. """
@@ -80,9 +124,9 @@ class Reshape(flask_restful.Resource):
         # Check that geojson is a dictionary.
         if not isinstance(geojson, dict):
             # log and return the error
-            log.addtrace("could not parse geojson.")
+            log.addtrace("could not retrieve geojson.")
             log.flush("ERROR", "runtime terminated")
-            return {"error": f"reshape failed. could not parse geojson. not a dictionary"}, 400
+            return {"error": f"reshape failed. could not retrieve geojson. not a dictionary"}, 400
 
         log.addtrace("geojson retrieved.")
 
@@ -142,6 +186,7 @@ class Reshape(flask_restful.Resource):
             # log the generated values
             log.addtrace(f"reshape data. bounds - {bounds}. area - {sqm}. centroid - {centroid}.")
             log.flush("INFO", "runtime complete")
+            
             # Return the reshape response
             return {
                 "bounds": bounds, 
@@ -155,23 +200,12 @@ class Reshape(flask_restful.Resource):
             log.flush("ERROR", "runtime error")
             return {"error": f"reshape failed. could not generate reshaped data. {e}"}, 500
 
-class Cloud(flask_restful.Resource):
-
-    def post(self):
-        """ The runtime for when the '/cloud' endpoint recieves a POST request """
-        logger = LogEntry("cloud")
-
-        request = flask.request.get_json()
-        logger.flush("INFO", f"{request}")
-
-        return f"complete", 200
 
 app = flask.Flask(__name__)
 api = flask_restful.Api(app)
 
-api.add_resource(Meta, '/meta')
+api.add_resource(Geocode, '/geocode')
 api.add_resource(Reshape, '/reshape')
-api.add_resource(Cloud, '/cloud')
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
