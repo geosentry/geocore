@@ -51,18 +51,81 @@ class LogEntry:
 
         print(json.dumps(logentry))
 
-
 class Check(flask_restful.Resource):
+    """ RESTful resource for the '/check' endpoint. """
 
     def post(self):
-        """ The runtime for when the '/check' endpoint recieves a POST request """
-        logger = LogEntry("check")
+        """ RESTful POST """
+        # Create a LogEntry object for the check workflow
+        log = LogEntry("check")
 
+        # Parse the request JSON
         request = flask.request.get_json()
-        logger.flush("INFO", f"{request}")
+        log.addtrace("request parsed.")
 
-        return f"complete", 200
+        # Retrieve the 'bounds' and 'timestamp' keys from the request
+        bounds = request.get("bounds")
+        timestamp = request.get("timestamp")
 
+        # Check that bounds is a list.
+        if not isinstance(bounds, list):
+            # log and return the error
+            log.addtrace("could not retrieve bounds.")
+            log.flush("ERROR", "runtime terminated")
+            return {"error": f"check failed. could not retrieve bounds. not a list"}, 400
+
+        # Check that timestamp is a str.
+        if not isinstance(timestamp, str):
+            # log and return the error
+            log.addtrace("could not retrieve timestamp.")
+            log.flush("ERROR", "runtime terminated")
+            return {"error": f"check failed. could not retrieve timestamp. not an str"}, 400
+
+        log.addtrace(f"bounds and timestamp retrieved. bounds - {bounds}. timestamp - {timestamp}.")
+
+        try:
+            from terrarium import spatial
+            # Generate an Earth Engine Geometry from the bounds
+            geometry = spatial.generate_earthenginegeometry_frombounds(*bounds)
+
+        except Exception as e:
+            # log and return the error
+            log.addtrace("could not generate geometry from bounds.")
+            log.flush("ERROR", "runtime terminated")
+            return {"error": f"check failed. could not generate geometry from bounds. {e}"}, 400
+
+        log.addtrace("geometry generated.")
+
+        try:
+            import ee
+            import datetime
+            from terrarium import temporal
+
+            # Obtain the datetime from the timestamp
+            date = datetime.datetime.fromisoformat(timestamp)
+            # Generate a daterange buffered around the date by 12 hours
+            daterange = temporal.generate_daterange(date, 0.5, buffer=True)
+
+            # Create a Sentinel-2 MSI collection
+            collection = ee.ImageCollection("COPERNICUS/S2_SR")
+            # Filter the collection for the daterange
+            collection = collection.filterBounds(geometry).filterDate(*daterange)
+            
+            # Check if images exist in the the collection
+            exists = True if collection.size().getInfo() else False
+            # log the generated values
+            log.addtrace(f"acquisition check - {exists}")
+            log.flush("INFO", "runtime complete")
+
+            # Return the check response
+            return {"check": exists}, 200
+
+        except Exception as e:
+            # log and return the error
+            log.addtrace("could not check if acquisition exists.")
+            log.flush("ERROR", "runtime terminated")
+            return {"error": f"check failed. could not check if acquisition exists. {e}"}, 500
+    
 class Select(flask_restful.Resource):
     """ RESTful resource for the '/select' endpoint. """
 
@@ -86,14 +149,14 @@ class Select(flask_restful.Resource):
             log.flush("ERROR", "runtime terminated")
             return {"error": f"select failed. could not retrieve bounds. not a list"}, 400
 
-        # Check that count is a dictionary.
+        # Check that count is an int.
         if not isinstance(count, int):
             # log and return the error
             log.addtrace("could not retrieve count.")
             log.flush("ERROR", "runtime terminated")
             return {"error": f"select failed. could not retrieve count. not an int"}, 400
 
-        log.addtrace("bounds and count retrieved.")
+        log.addtrace(f"bounds and count retrieved. bounds - {bounds}. count - {count}.")
 
         try:
             from terrarium import spatial
