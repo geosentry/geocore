@@ -58,7 +58,7 @@ jobs:
         with: 
           service: ${{ matrix.services }}
           region: ${{ env.REGION }}
-          env_vars: GCP_PROJECT=${{ env.PROJECT_ID }}, GCP_REGION=${{ env.REGION }}, MAPS_GEOCODING_APIKEY=${{ secret.MAPS_APIKEY }}
+          env_vars: GCP_PROJECT=${{ env.PROJECT_ID }}, GCP_REGION=${{ env.REGION }}, MAPS_GEOCODING_APIKEY=${{ secrets.MAPS_APIKEY }}
           flags: --service-account ${{ env.SACCOUNT }} --timeout 60 --concurrency 20
           image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/geocore/${{ matrix.services }}:${{ env.TAG_VERSION }}
 
