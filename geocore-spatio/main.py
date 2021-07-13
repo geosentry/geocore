@@ -6,8 +6,11 @@ Google Cloud Platform - Cloud Run
 geocore-spatio service
 """
 import os
+import json
 import flask
 import flask_restful
+
+from terrarium import spatial
 
 class LogEntry:
     """ A class that represents a serverless log compliant with Google Cloud Platform. """
@@ -44,8 +47,6 @@ class LogEntry:
         Accepted log severity values are - EMERGENCY, ALERT, CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG and DEFAULT.
         Refer to https://cloud.google.com/logging/docs/reference/v2/rest/v2/LogEntry#logseverity for more information.
         """
-        import json
-
         self.addtrace("execution ended.")
         logentry = dict(severity=severity, message=message)
         logentry.update(self.baselog)
@@ -90,8 +91,6 @@ class Geocode(flask_restful.Resource):
             return {"error": f"reshape failed. coordinates missing latitude."}, 400
 
         try:
-            from terrarium import spatial
-
             # Genertae the geocode location for the coordinates
             geocode = spatial.generate_location(**coordinates)
             # log the generated values
@@ -131,9 +130,6 @@ class Reshape(flask_restful.Resource):
         log.addtrace("geojson retrieved.")
 
         try:
-            import json
-            from terrarium import spatial
-
             # Generate a shape geometry from the geojson 
             shape = spatial.generate_shape_fromgeojson(json.dumps(geojson))
             log.addtrace("shape geometry generated.")
