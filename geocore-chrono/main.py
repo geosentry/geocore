@@ -95,6 +95,7 @@ class Check(flask_restful.Resource):
         try:
             # Initialize Earth Engine Session
             if not ee.data._initialized:
+                global EECREDENTIALS
                 initialize(EECREDENTIALS)
 
             # Generate an Earth Engine Geometry from the bounds
@@ -169,6 +170,7 @@ class Select(flask_restful.Resource):
         try:
             # Initialize Earth Engine Session
             if not ee.data._initialized:
+                global EECREDENTIALS
                 initialize(EECREDENTIALS)
 
             # Generate an Earth Engine Geometry from the bounds
