@@ -64,15 +64,99 @@ class Check(flask_restful.Resource):
         return f"complete", 200
 
 class Select(flask_restful.Resource):
+    """ RESTful resource for the '/select' endpoint. """
 
     def post(self):
-        """ The runtime for when the '/select' endpoint recieves a POST request """
-        logger = LogEntry("select")
+        """ RESTful POST """
+        # Create a LogEntry object for the select workflow
+        log = LogEntry("select")
 
+        # Parse the request JSON
         request = flask.request.get_json()
-        logger.flush("INFO", f"{request}")
+        log.addtrace("request parsed.")
 
-        return f"complete", 200
+        # Retrieve the 'bounds' and 'count' keys from the request
+        bounds = request.get("bounds")
+        count = request.get("count")
+
+        # Check that bounds is a list.
+        if not isinstance(bounds, list):
+            # log and return the error
+            log.addtrace("could not retrieve bounds.")
+            log.flush("ERROR", "runtime terminated")
+            return {"error": f"select failed. could not retrieve bounds. not a list"}, 400
+
+        # Check that count is a dictionary.
+        if not isinstance(count, int):
+            # log and return the error
+            log.addtrace("could not retrieve count.")
+            log.flush("ERROR", "runtime terminated")
+            return {"error": f"select failed. could not retrieve count. not an int"}, 400
+
+        log.addtrace("bounds and count retrieved.")
+
+        try:
+            from terrarium import spatial
+            # Generate an Earth Engine Geometry from the bounds
+            geometry = spatial.generate_earthenginegeometry_frombounds(*bounds)
+
+        except Exception as e:
+            # log and return the error
+            log.addtrace("could not generate geometry from bounds.")
+            log.flush("ERROR", "runtime terminated")
+            return {"error": f"select failed. could not generate geometry from bounds. {e}"}, 400
+
+        log.addtrace("geometry generated.")
+
+        try:
+            import ee
+            import datetime
+            from terrarium import temporal
+
+            # Obtain the current datetime
+            today = datetime.datetime.utcnow()
+            # Generate a daterange going back 10 days from the current day
+            daterange = temporal.generate_daterange(today, 10)
+
+            # Create a Sentinel-2 MSI collection
+            collection = ee.ImageCollection("COPERNICUS/S2_SR")
+            # Filter the collection for the daterange
+            collection = collection.filterBounds(geometry).filterDate(*daterange)
+
+        except Exception as e:
+            # log and return the error
+            log.addtrace("could not filter sentinel-2 collection.")
+            log.flush("ERROR", "runtime terminated")
+            return {"error": f"select failed. could not filter sentinel-2 collection. {e}"}, 500
+
+        log.addtrace("filtered collection generated.")
+
+        try:
+            # Generate a list of dates from the Earth Engine Collection
+            datelist = temporal.generate_earthenginecollection_datelist(collection)
+            # Select the last date from the datelist as the latest date
+            latest = datelist[-1]
+
+            # Generate a list dates for the last 'count' no of acquisitions.
+            # Each generation cycles shifts the day 5 days behind and adds it to the list.
+            datetimes = [date := latest, *[date := temporal.shift_date(date, -5) for _ in range(count-1)]]
+            # Sort the acquisition dates
+            datetimes.sort()
+
+            # Convert the acquisition dates to IS08601 strings
+            timestamps = [date.isoformat() for date in datetimes]
+            # log the generated values
+            log.addtrace(f"acquisition dates selected. dates - {timestamps}")
+            log.flush("INFO", "runtime complete")
+
+            # Return the select response
+            return {"timestamps": timestamps}, 200
+
+        except Exception as e:
+            # log and return the error
+            log.addtrace("could not select acquisition dates.")
+            log.flush("ERROR", "runtime terminated")
+            return {"error": f"select failed. could not select acquisition dates. {e}"}, 500
 
 
 app = flask.Flask(__name__)
