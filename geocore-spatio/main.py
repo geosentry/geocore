@@ -57,8 +57,8 @@ class Geocode(flask_restful.Resource):
 
     def post(self):
         """ RESTful POST """
-        # Create a LogEntry object for the reshape workflow
-        log = LogEntry("reshape")
+        # Create a LogEntry object for the geocode workflow
+        log = LogEntry("geocode")
 
         # Parse the request JSON
         request = flask.request.get_json()
@@ -66,7 +66,7 @@ class Geocode(flask_restful.Resource):
 
         # Retrieve the 'coordinates' key from the request
         coordinates = request.get("coordinates")
-        # Check that geojson is a dictionary.
+        # Check that coordinates is a dictionary.
         if not isinstance(coordinates, dict):
             # log and return the error
             log.addtrace("could not retrieve coordinates.")
