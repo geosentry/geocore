@@ -135,7 +135,7 @@ class Reshape(flask_restful.Resource):
             from terrarium import spatial
 
             # Generate a shape geometry from the geojson 
-            shape = spatial.generate_shapely_geometry(json.dumps(geojson))
+            shape = spatial.generate_shape_fromgeojson(json.dumps(geojson))
             log.addtrace("shape geometry generated.")
 
         except RuntimeError as e:
