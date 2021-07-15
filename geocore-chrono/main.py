@@ -18,40 +18,25 @@ from terrarium import temporal
 from terrarium import spatial
 
 def init():
-    """ A function that fetches Earth Engine Credentials from Secret Manager and authenticates an Earth Engine Session with Terrarium. """
-    try:
-        import google.cloud.secretmanager as secretmanager
-        # Create a Secret Manager Client
-        secrets = secretmanager.SecretManagerServiceClient()
-
-        # Retrieve the Project ID from the environment
-        project = os.environ["GCP_PROJECT"]
-
-        # Construct the name of the secret
-        secret_name = f"projects/{project}/secrets/earthengineone/versions/latest"
-        secret_data = secrets.access_secret_version(name=secret_name)
-        credentials = secret_data.payload.data
-
-    except KeyError as e:
-        logentry = dict(severity="EMERGENCY", message=f"could not obtain earth engine credentials. error: {e} environment variable not set")
-        print(json.dumps(logentry))
-        sys.exit(0)
-
-    except Exception as e:
-        logentry = dict(severity="EMERGENCY", message=f"could not obtain earth engine credentials. error: {e}")
-        print(json.dumps(logentry))
-        sys.exit(0)
-
+    """ 
+    A function that generates Earth Engine Credentials from the default application 
+    credentials and authenticates an Earth Engine Session with Terrarium. 
+    """
     try:
         from terrarium import initialize
+
+        # Retrieve the location of the credentials file from the environment variables set by Google Cloud Platform
+        keyfile = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
+        # Generate a new Earth Engine credential object
+        credentials = ee.ServiceAccountCredentials(email=None, key_file=keyfile)
+
         # Initialize Earth Engine Session
         initialize(credentials)
 
     except Exception as e:
-        logentry = dict(severity="EMERGENCY", message=f"could not initialize earth engine session. error: {e}")
+        logentry = dict(severity="EMERGENCY", message=f"could not intialize earth engine session. error: {e}")
         print(json.dumps(logentry))
         sys.exit(0)
-
 
 class LogEntry:
     """ A class that represents a serverless log compliant with Google Cloud Platform. """

@@ -12,12 +12,7 @@ WSGI Server: **gUnicorn**
 API Framework: **Flask-RESTful**  
 
 ## Service Account Permissions
-Default Application Credentials
-- **Secret Manager Secret Accessor** (Secret Manager)  
-
-Earth Engine Credentials (Stored on Secret Manager)
 - **Earth Engine** (Registered as an Earth Engine SA)
-- **Storage Object Admin** (Cloud Storage)
 
 ## Endpoints
 ### /check
@@ -71,10 +66,10 @@ The gcloud command used to deploy the function is as follows
 gcloud run deploy geocore-chrono \
 --platform "managed" \
 --region $REGION \
---service-account geocore@$PROJECTID.iam.gserviceaccount.com \
+--service-account geocore-chrono@$PROJECTID.iam.gserviceaccount.com \
 --concurrency 20
 --timeout 60 \
---set-env-vars GCP_PROJECT=$PROJECTID GCP_REGION=$REGION MAPS_GEOCODING_APIKEY=$MAPSAPIKEY \
+--set-env-vars GCP_PROJECT=$PROJECTID GCP_REGION=$REGION MAPS_APIKEY=$MAPSAPIKEY \
 --image $REGION-docker.pkg.dev/$PROJECTID/geocore/geocore-chrono:$TAG 
 ```
 
