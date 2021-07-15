@@ -7,6 +7,7 @@ geocore-spatio service
 """
 import os
 import json
+
 import flask
 import flask_restful
 
