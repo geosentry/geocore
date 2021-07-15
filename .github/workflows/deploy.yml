@@ -12,7 +12,6 @@ on:
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT }}
   REGION: asia-south1
-  SACCOUNT: geocore@${{ secrets.GCP_PROJECT }}.iam.gserviceaccount.com
 
 # Workflow Jobs
 jobs:
@@ -58,8 +57,8 @@ jobs:
         with: 
           service: ${{ matrix.services }}
           region: ${{ env.REGION }}
-          env_vars: GCP_PROJECT=${{ env.PROJECT_ID }}, GCP_REGION=${{ env.REGION }}, MAPS_GEOCODING_APIKEY=${{ secrets.MAPS_APIKEY }}
-          flags: --service-account ${{ env.SACCOUNT }} --timeout 60 --concurrency 20
+          env_vars: GCP_PROJECT=${{ env.PROJECT_ID }}, GCP_REGION=${{ env.REGION }}, MAPS_APIKEY=${{ secrets.MAPS_APIKEY }}
+          flags: --service-account ${{ matrix.services }}@${{ secrets.GCP_PROJECT }}.iam.gserviceaccount.com --timeout 60 --concurrency 5 --max-instances 2
           image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/geocore/${{ matrix.services }}:${{ env.TAG_VERSION }}
 
       # Register Service
