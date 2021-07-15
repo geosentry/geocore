@@ -58,7 +58,7 @@ jobs:
           service: ${{ matrix.services }}
           region: ${{ env.REGION }}
           env_vars: GCP_PROJECT=${{ env.PROJECT_ID }}, GCP_REGION=${{ env.REGION }}, MAPS_APIKEY=${{ secrets.MAPS_APIKEY }}
-          flags: --service-account ${{ matrix.services }}@${{ secrets.GCP_PROJECT }}.iam.gserviceaccount.com --timeout 60 --concurrency 5 --max-instances 2
+          flags: --service-account ${{ matrix.services }}@${{ secrets.GCP_PROJECT }}.iam.gserviceaccount.com --timeout 60 --concurrency 5
           image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/geocore/${{ matrix.services }}:${{ env.TAG_VERSION }}
 
       # Register Service
