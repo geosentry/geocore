@@ -14,8 +14,10 @@ import flask
 import flask_restful
 
 import ee
-from terrarium import spectral
+from terrarium import spatial
 from terrarium import export
+from terrarium import spectral
+
 
 def init():
     """ 
@@ -94,12 +96,111 @@ class TrueColor(flask_restful.Resource):
 
     def post(self):
         """ The runtime for when the '/truecolor' endpoint recieves a POST request """
-        logger = LogEntry("truecolor")
+        # Create a LogEntry object for the check workflow
+        log = LogEntry("truecolor")
 
+        # Parse the request JSON
         request = flask.request.get_json()
-        logger.flush("INFO", f"{request}")
+        log.addtrace("request parsed.")
 
-        return f"complete", 200
+        try:
+            # Retrieve the 'bounds', 'timestamp', 'prefix' and 'bucket' keys from the request
+            bounds = request["bounds"]
+            timestamp = request["timestamp"]
+            bucket = request["bucket"]
+            prefix = request["prefix"]
+
+            # Check that bounds is a list.
+            if not isinstance(bounds, list):
+                # log and return the error
+                log.addtrace("invalid bounds. must be a list.")
+                log.flush("ERROR", "runtime terminated")
+                return {"error": f"truecolor generation failed. invalid bounds. must be a list."}, 400
+
+            # Check that timestamp is an str.
+            if not isinstance(timestamp, list):
+                # log and return the error
+                log.addtrace("invalid timestamp. must be an str.")
+                log.flush("ERROR", "runtime terminated")
+                return {"error": f"truecolor generation failed. invalid timestamp. must be an str."}, 400
+
+            # Check that bucket is an str.
+            if not isinstance(bucket, list):
+                # log and return the error
+                log.addtrace("invalid bucket. must be an str.")
+                log.flush("ERROR", "runtime terminated")
+                return {"error": f"truecolor generation failed. invalid bucket. must be an str."}, 400
+
+            # Check that prefix is an str.
+            if not isinstance(prefix, list):
+                # log and return the error
+                log.addtrace("invalid prefix. must be an str.")
+                log.flush("ERROR", "runtime terminated")
+                return {"error": f"truecolor generation failed. invalid prefix. must be an str."}, 400
+
+        except KeyError as e:
+            # log and return the error
+            log.addtrace(f"missing request parameter {e}.")
+            log.flush("ERROR", "runtime terminated")
+            return {"error": f"truecolor generation failed. missing request parameter. {e}"}, 400
+
+        # Initialize Earth Engine Session
+        init() if not ee.data._initialized else None
+        
+        try:
+            # Generate an Earth Engine Geometry from the bounds
+            geometry = spatial.generate_earthenginegeometry_frombounds(*bounds)
+
+            # Obtain the datetime from the timestamp
+            date = datetime.datetime.fromisoformat(timestamp)
+
+        except RuntimeError as e:
+            # log and return the error
+            log.addtrace(f"could not generate geometry from bounds. {e}")
+            log.flush("ERROR", "runtime terminated")
+            return {"error": f"truecolor generation failed. could not generate geometry from bounds. {e}"}, 400
+
+        except Exception as e:
+            # log and return the error
+            log.addtrace(f"could not generate date from timestamp. {e}")
+            log.flush("ERROR", "runtime terminated")
+            return {"error": f"truecolor generation failed. could not generate date from timestamp. {e}"}, 400
+
+        try:
+            # Generate the TCI image
+            image = spectral.generate_spectral_image(date, geometry, "TCI")
+
+        except Exception as e:
+            # log and return the error
+            log.addtrace(f"could not generate truecolor image. {e}")
+            log.flush("ERROR", "runtime terminated")
+            return {"error": f"truecolor generation failed. could not generate truecolor image. {e}"}, 400
+
+        try:
+            # Append the tci asset id to the prefix
+            prefix = f"{prefix}/tci"
+
+            # Generate an Earth Engine Export Task for the image
+            exporttask = export.export_image(image, bucket, prefix)
+            # Start the task
+            exporttask.start()
+
+        except Exception as e:
+            # log and return the error
+            log.addtrace(f"could not start truecolor export. {e}")
+            log.flush("ERROR", "runtime terminated")
+            return {"error": f"truecolor generation failed. could not start truecolor export. {e}"}, 400
+
+        # log the task id
+        log.addtrace(f"truecolor generated and exported. export-task - {exporttask.id}")
+        log.flush("INFO", "runtime complete")
+
+        # Initialize PubSub client
+        # Compose the task creation PubSub message
+        # Publish the message the the 'taskstatus' PubSub topic
+
+        # Return the completion response
+        return {"completed": True, "export-task": exporttask.id}, 200
 
 class Spectral(flask_restful.Resource):
 
