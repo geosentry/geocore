@@ -6,7 +6,6 @@ Google Cloud Platform - Cloud Run
 geocore-chrono service
 """
 import os
-import sys
 import json
 import datetime
 
@@ -16,27 +15,7 @@ import flask_restful
 import ee
 from terrarium import temporal
 from terrarium import spatial
-
-def init():
-    """ 
-    A function that generates Earth Engine Credentials from the default application 
-    credentials and authenticates an Earth Engine Session with Terrarium. 
-    """
-    try:
-        from terrarium import initialize
-
-        # Retrieve the location of the credentials file from the environment variables set by Google Cloud Platform
-        keyfile = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
-        # Generate a new Earth Engine credential object
-        credentials = ee.ServiceAccountCredentials(email=None, key_file=keyfile)
-
-        # Initialize Earth Engine Session
-        initialize(credentials)
-
-    except Exception as e:
-        logentry = dict(severity="EMERGENCY", message=f"could not intialize earth engine session. error: {e}")
-        print(json.dumps(logentry))
-        sys.exit(0)
+from terrarium import initialize
 
 class LogEntry:
     """ A class that represents a serverless log compliant with Google Cloud Platform. """
@@ -91,44 +70,69 @@ class Check(flask_restful.Resource):
         request = flask.request.get_json()
         log.addtrace("request parsed.")
 
-        # Retrieve the 'bounds' and 'timestamp' keys from the request
-        bounds = request.get("bounds")
-        timestamp = request.get("timestamp")
+        try:
+            # Retrieve the 'bounds' and 'timestamp' keys from the request
+            bounds = request["bounds"]
+            timestamp = request["timestamp"]
 
-        # Check that bounds is a list.
-        if not isinstance(bounds, list):
+            # Check that bounds is a list.
+            if not isinstance(bounds, list):
+                # log and return the error
+                log.addtrace("invalid bounds")
+                log.flush("ERROR", "runtime terminated")
+                return {"error": f"temporal check failed. invalid bounds. must be a list"}, 400
+
+            log.addtrace(f"bounds - {bounds}.")
+
+            # Check that timestamp is a str.
+            if not isinstance(timestamp, str):
+                # log and return the error
+                log.addtrace("invalid timestamp.")
+                log.flush("ERROR", "runtime terminated")
+                return {"error": f"temporal check failed. invalid timestamp. must be an str"}, 400
+
+            log.addtrace(f"timestamp - {timestamp}.")
+
+        except KeyError as e:
             # log and return the error
-            log.addtrace("could not retrieve bounds.")
+            log.addtrace(f"missing request parameter {e}.")
             log.flush("ERROR", "runtime terminated")
-            return {"error": f"check failed. could not retrieve bounds. not a list"}, 400
+            return {"error": f"temporal check failed. missing request parameter. {e}"}, 400
 
-        # Check that timestamp is a str.
-        if not isinstance(timestamp, str):
-            # log and return the error
-            log.addtrace("could not retrieve timestamp.")
-            log.flush("ERROR", "runtime terminated")
-            return {"error": f"check failed. could not retrieve timestamp. not an str"}, 400
-
-        log.addtrace(f"bounds and timestamp retrieved. bounds - {bounds}. timestamp - {timestamp}.")
+        log.addtrace(f"request parameters retrieved.")
 
         try:
             # Initialize Earth Engine Session
-            init() if not ee.data._initialized else None
-
-            # Generate an Earth Engine Geometry from the bounds
-            geometry = spatial.generate_earthenginegeometry_frombounds(*bounds)
+            initialize(os.environ.get("GCP_PROJECT")) if not ee.data._initialized else None
 
         except Exception as e:
             # log and return the error
-            log.addtrace("could not generate geometry from bounds.")
+            log.addtrace(f"{e}")
             log.flush("ERROR", "runtime terminated")
-            return {"error": f"check failed. could not generate geometry from bounds. {e}"}, 400
-
-        log.addtrace("geometry generated.")
+            return {"error": f"temporal check failed. {e}"}, 500
 
         try:
+            # Generate an Earth Engine Geometry from the bounds
+            geometry = spatial.generate_earthenginegeometry_frombounds(*bounds)
+
             # Obtain the datetime from the timestamp
             date = datetime.datetime.fromisoformat(timestamp)
+
+        except RuntimeError as e:
+            # log and return the error
+            log.addtrace(f"could not generate geometry from bounds. {e}")
+            log.flush("ERROR", "runtime terminated")
+            return {"error": f"temporal check failed. could not generate geometry from bounds. {e}"}, 400
+
+        except Exception as e:
+            # log and return the error
+            log.addtrace(f"could not generate date from timestamp. {e}")
+            log.flush("ERROR", "runtime terminated")
+            return {"error": f"temporal check failed. could not generate date from timestamp. {e}"}, 400
+
+        log.addtrace("temporal parameters generated.")
+
+        try:
             # Generate a daterange buffered around the date by 12 hours
             daterange = temporal.generate_daterange(date, 0.5, buffer=True)
 
@@ -150,7 +154,7 @@ class Check(flask_restful.Resource):
             # log and return the error
             log.addtrace("could not check if acquisition exists.")
             log.flush("ERROR", "runtime terminated")
-            return {"error": f"check failed. could not check if acquisition exists. {e}"}, 500
+            return {"error": f"temporal check failed. could not check if acquisition exists. {e}"}, 500
     
 class Select(flask_restful.Resource):
     """ RESTful resource for the '/select' endpoint. """
@@ -164,43 +168,61 @@ class Select(flask_restful.Resource):
         request = flask.request.get_json()
         log.addtrace("request parsed.")
 
-        # Retrieve the 'bounds' and 'count' keys from the request
-        bounds = request.get("bounds")
-        count = request.get("count")
+        try:
+            # Retrieve the 'bounds' and 'count' keys from the request
+            bounds = request["bounds"]
+            count = request["count"]
 
-        # Check that bounds is a list.
-        if not isinstance(bounds, list):
+            # Check that bounds is a list.
+            if not isinstance(bounds, list):
+                # log and return the error
+                log.addtrace("invalid bounds")
+                log.flush("ERROR", "runtime terminated")
+                return {"error": f"temporal select failed. invalid bounds. must be a list"}, 400
+
+            log.addtrace(f"bounds - {bounds}.")
+
+            # Check that count is an int.
+            if not isinstance(count, int):
+                # log and return the error
+                log.addtrace("invalid count")
+                log.flush("ERROR", "runtime terminated")
+                return {"error": f"temporal select failed. invalid count. must be an int"}, 400
+
+            log.addtrace(f"count - {count}.")
+
+        except KeyError as e:
             # log and return the error
-            log.addtrace("could not retrieve bounds.")
+            log.addtrace(f"missing request parameter {e}.")
             log.flush("ERROR", "runtime terminated")
-            return {"error": f"select failed. could not retrieve bounds. not a list"}, 400
+            return {"error": f"temporal select failed. missing request parameter. {e}"}, 400
 
-        # Check that count is an int.
-        if not isinstance(count, int):
-            # log and return the error
-            log.addtrace("could not retrieve count.")
-            log.flush("ERROR", "runtime terminated")
-            return {"error": f"select failed. could not retrieve count. not an int"}, 400
-
-        log.addtrace(f"bounds and count retrieved. bounds - {bounds}. count - {count}.")
+        log.addtrace(f"request parameters retrieved.")
 
         try:
             # Initialize Earth Engine Session
-            init() if not ee.data._initialized else None
-
-            # Generate an Earth Engine Geometry from the bounds
-            geometry = spatial.generate_earthenginegeometry_frombounds(*bounds)
+            initialize(os.environ.get("GCP_PROJECT")) if not ee.data._initialized else None
 
         except Exception as e:
             # log and return the error
-            log.addtrace("could not generate geometry from bounds.")
+            log.addtrace(f"{e}")
             log.flush("ERROR", "runtime terminated")
-            return {"error": f"select failed. could not generate geometry from bounds. {e}"}, 400
+            return {"error": f"temporal select failed. {e}"}, 500
+        
+        try:
+            # Generate an Earth Engine Geometry from the bounds
+            geometry = spatial.generate_earthenginegeometry_frombounds(*bounds)
 
-        log.addtrace("geometry generated.")
+        except RuntimeError as e:
+            # log and return the error
+            log.addtrace(f"could not generate geometry from bounds. {e}")
+            log.flush("ERROR", "runtime terminated")
+            return {"error": f"temporal select failed. could not generate geometry from bounds. {e}"}, 400
+
+        log.addtrace("spatial parameters generated.")
 
         try:
-            # Obtain the current datetime
+             # Obtain the current datetime
             today = datetime.datetime.utcnow()
             # Generate a daterange going back 10 days from the current day
             daterange = temporal.generate_daterange(today, 10)
@@ -212,9 +234,9 @@ class Select(flask_restful.Resource):
 
         except Exception as e:
             # log and return the error
-            log.addtrace("could not filter sentinel-2 collection.")
+            log.addtrace(f"could not filter sentinel-2 collection. {e}")
             log.flush("ERROR", "runtime terminated")
-            return {"error": f"select failed. could not filter sentinel-2 collection. {e}"}, 500
+            return {"error": f"temporal select failed. could not filter sentinel-2 collection. {e}"}, 500
 
         log.addtrace("filtered collection generated.")
 
@@ -241,9 +263,9 @@ class Select(flask_restful.Resource):
 
         except Exception as e:
             # log and return the error
-            log.addtrace("could not select acquisition dates.")
+            log.addtrace(f"could not select acquisition dates. {e}")
             log.flush("ERROR", "runtime terminated")
-            return {"error": f"select failed. could not select acquisition dates. {e}"}, 500
+            return {"error": f"temporal select failed. could not select acquisition dates. {e}"}, 500
 
 
 app = flask.Flask(__name__)
@@ -254,7 +276,7 @@ api.add_resource(Select, '/select')
 
 if __name__ == '__main__':
     # Initialize Earth Engine Session
-    init() if not ee.data._initialized else None
+    initialize(os.environ.get("GCP_PROJECT")) if not ee.data._initialized else None
 
     # Start the Flask App
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
