@@ -18,25 +18,66 @@ API Framework: **Flask-RESTful**
 
 ## Endpoints
 ### /spectral
+A **GeoCore** API function that generates a spectral image and exports it
+
+#### Request Format
+```json
+{
+    "bounds": [<float>, <float>, <float>, <float>],
+    "timestamp": <isostr>,
+    "prefix": <str>,
+    "bucket": <str>,
+    "index": <str>
+}
+```
+The *bounds* field must be a list of float values that represent the west, south, east and north bound extents of the region.     
+The *timestamp* field must be an ISO8601 string that represents the timestamp around which to check for an acquisition.    
+The *prefix* field must be string and represents the filename prefix for the generated asset. The index is the appended to this prefix to form the full asset name.   
+The *bucket* field must be a string that represents the bucket the asset is exported to.  
+The *index* field must be a string that represent the spectral index to generate. Current supported values are TCI and NDVI.
+
+#### Response Format
+```json
+{
+    "completed": <bool>,
+    "export-task" <str>,
+}
+```
+The *completed* field is a boolean that represents if the image was generated and the export was succesfully.   
+The *export-task* field is a string that represents the task ID of the export task.
+(status of the export task can be queried with geocore-chrono's /taskstatus endpoint)
+
 ### /truecolor
+A **GeoCore** API function that generates a true color image and exports it
+
+#### Request Format
+```json
+{
+    "bounds": [<float>, <float>, <float>, <float>],
+    "timestamp": <isostr>,
+    "prefix": <str>,
+    "bucket": <str>
+}
+```
+The *bounds* field must be a list of float values that represent the west, south, east and north bound extents of the region.     
+The *timestamp* field must be an ISO8601 string that represents the timestamp around which to check for an acquisition.    
+The *prefix* field must be string and represents the filename prefix for the generated asset. 'tci' is the appended to this prefix to form the full asset name.   
+The *bucket* field must be a string that represents the bucket the asset is exported to. 
+
+#### Response Format
+```json
+{
+    "completed": <bool>,
+    "export-task" <str>,
+}
+```
+The *completed* field is a boolean that represents if the image was generated and the export was succesfully.   
+The *export-task* field is a string that represents the task ID of the export task.
+(status of the export task can be queried with geocore-chrono's /taskstatus endpoint)
+
 ### /falsecolor
 ### /scl
 ### /altitude
-
-!todo - edit for http endpoint
-1. Obtain the path to the *region* document by parsing the event dictionary from the PubSub trigger.
-2. Initialize the Firestore Client and Earth Engine Session.
-3. Validate that the *region* document is active for acquisitions. (not sure if this check is necessary. needs to be revisited)
-4. Construct the geometry from geojson in the *region* document.
-5. Check if the 'next_acquisition' field is set in the *region* document.
-    - If the field is set, generate a datetime object from it.
-    - Otherwise, find the latest acquisition available for the region and generate a datetime object from it.
-6. Generate the acquisition image for the latest expected acquisition date and retrieve its Earth Engine Asset ID.
-7. Update the *region* document's 'next_acquisition' and 'last_acquisition' fields.
-8. Check the cloudiness of the acquisition. (TODO)
-9. Generate the asset images based on the *region* document's subscription type.
-10. Export the asset images to Cloud Storage Buckets through the Earth Engine Batch System.
-11. Create the *acquisition* document with the acquisition metadata, asset export paths, etc.
 
 ## Deployment
 All tags push to the **geosentry/geocore** repository will automatically trigger a workflow to build the docker image, push it to **Artifcat Registry** and deploy it to the **Cloud Run** and register the service with **Service Directory**.  
