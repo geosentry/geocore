@@ -6,7 +6,6 @@ Google Cloud Platform - Cloud Run
 geocore-raster service
 """
 import os
-import sys
 import json
 import datetime
 
@@ -17,28 +16,7 @@ import ee
 from terrarium import spatial
 from terrarium import export
 from terrarium import spectral
-
-
-def init():
-    """ 
-    A function that generates Earth Engine Credentials from the default application 
-    credentials and authenticates an Earth Engine Session with Terrarium. 
-    """
-    try:
-        from terrarium import initialize
-
-        # Retrieve the location of the credentials file from the environment variables set by Google Cloud Platform
-        keyfile = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
-        # Generate a new Earth Engine credential object
-        credentials = ee.ServiceAccountCredentials(email=None, key_file=keyfile)
-
-        # Initialize Earth Engine Session
-        initialize(credentials)
-
-    except Exception as e:
-        logentry = dict(severity="EMERGENCY", message=f"could not intialize earth engine session. error: {e}")
-        print(json.dumps(logentry))
-        sys.exit(0)
+from terrarium import initialize
 
 class LogEntry:
     """ A class that represents a serverless log compliant with Google Cloud Platform. """
@@ -113,30 +91,38 @@ class TrueColor(flask_restful.Resource):
             # Check that bounds is a list.
             if not isinstance(bounds, list):
                 # log and return the error
-                log.addtrace("invalid bounds. must be a list.")
+                log.addtrace("invalid bounds.")
                 log.flush("ERROR", "runtime terminated")
                 return {"error": f"truecolor generation failed. invalid bounds. must be a list."}, 400
+
+            log.addtrace(f"bounds - {bounds}.")
 
             # Check that timestamp is an str.
             if not isinstance(timestamp, str):
                 # log and return the error
-                log.addtrace("invalid timestamp. must be an str.")
+                log.addtrace("invalid timestamp.")
                 log.flush("ERROR", "runtime terminated")
                 return {"error": f"truecolor generation failed. invalid timestamp. must be an str."}, 400
+
+            log.addtrace(f"timestamp - {timestamp}.")
 
             # Check that bucket is an str.
             if not isinstance(bucket, str):
                 # log and return the error
-                log.addtrace("invalid bucket. must be an str.")
+                log.addtrace("invalid bucket.")
                 log.flush("ERROR", "runtime terminated")
                 return {"error": f"truecolor generation failed. invalid bucket. must be an str."}, 400
+
+            log.addtrace(f"bucket - {bucket}.")
 
             # Check that prefix is an str.
             if not isinstance(prefix, str):
                 # log and return the error
-                log.addtrace("invalid prefix. must be an str.")
+                log.addtrace("invalid prefix.")
                 log.flush("ERROR", "runtime terminated")
                 return {"error": f"truecolor generation failed. invalid prefix. must be an str."}, 400
+
+            log.addtrace(f"prefix - {prefix}.")
 
         except KeyError as e:
             # log and return the error
@@ -144,9 +130,18 @@ class TrueColor(flask_restful.Resource):
             log.flush("ERROR", "runtime terminated")
             return {"error": f"truecolor generation failed. missing request parameter. {e}"}, 400
 
-        # Initialize Earth Engine Session
-        init() if not ee.data._initialized else None
-        
+        log.addtrace(f"request parameters retrieved.")
+
+        try:
+            # Initialize Earth Engine Session
+            initialize(os.environ.get("GCP_PROJECT")) if not ee.data._initialized else None
+
+        except Exception as e:
+            # log and return the error
+            log.addtrace(f"{e}")
+            log.flush("ERROR", "runtime terminated")
+            return {"error": f"truecolor generation failed. {e}"}, 500
+
         try:
             # Generate an Earth Engine Geometry from the bounds
             geometry = spatial.generate_earthenginegeometry_frombounds(*bounds)
@@ -166,15 +161,19 @@ class TrueColor(flask_restful.Resource):
             log.flush("ERROR", "runtime terminated")
             return {"error": f"truecolor generation failed. could not generate date from timestamp. {e}"}, 400
 
+        log.addtrace(f"image parameters generated.")
+
         try:
             # Generate the TCI image
             image = spectral.generate_spectral_image(date, geometry, "TCI")
 
         except Exception as e:
             # log and return the error
-            log.addtrace(f"could not generate truecolor image. {e}")
+            log.addtrace(f"could not generate image. {e}")
             log.flush("ERROR", "runtime terminated")
-            return {"error": f"truecolor generation failed. could not generate truecolor image. {e}"}, 400
+            return {"error": f"truecolor generation failed. could not generate image. {e}"}, 400
+
+        log.addtrace(f"truecolor image generated.")
 
         try:
             # Append the tci asset id to the prefix
@@ -187,17 +186,19 @@ class TrueColor(flask_restful.Resource):
 
         except Exception as e:
             # log and return the error
-            log.addtrace(f"could not start truecolor export. {e}")
+            log.addtrace(f"could not start export. {e}")
             log.flush("ERROR", "runtime terminated")
-            return {"error": f"truecolor generation failed. could not start truecolor export. {e}"}, 400
+            return {"error": f"truecolor generation failed. could not start export. {e}"}, 500
 
         # log the task id
-        log.addtrace(f"truecolor generated and exported. export-task - {exporttask.id}")
-        log.flush("INFO", "runtime complete")
+        log.addtrace(f"image export started. export-task - {exporttask.id}")
 
         # Initialize PubSub client
         # Compose the task creation PubSub message
         # Publish the message the the 'taskstatus' PubSub topic
+
+        #log.addtrace(f"export task registered.")
+        log.flush("INFO", "runtime complete")
 
         # Return the completion response
         return {"completed": True, "export-task": exporttask.id}, 200
@@ -225,37 +226,47 @@ class Spectral(flask_restful.Resource):
             # Check that bounds is a list.
             if not isinstance(bounds, list):
                 # log and return the error
-                log.addtrace("invalid bounds. must be a list.")
+                log.addtrace("invalid bounds.")
                 log.flush("ERROR", "runtime terminated")
                 return {"error": f"spectral generation failed. invalid bounds. must be a list."}, 400
+
+            log.addtrace(f"bounds - {bounds}.")
 
             # Check that timestamp is an str.
             if not isinstance(timestamp, str):
                 # log and return the error
-                log.addtrace("invalid timestamp. must be an str.")
+                log.addtrace("invalid timestamp.")
                 log.flush("ERROR", "runtime terminated")
                 return {"error": f"spectral generation failed. invalid timestamp. must be an str."}, 400
+
+            log.addtrace(f"timestamp - {timestamp}.")
 
             # Check that bucket is an str.
             if not isinstance(bucket, str):
                 # log and return the error
-                log.addtrace("invalid bucket. must be an str.")
+                log.addtrace("invalid bucket.")
                 log.flush("ERROR", "runtime terminated")
                 return {"error": f"spectral generation failed. invalid bucket. must be an str."}, 400
+
+            log.addtrace(f"bucket - {bucket}.")
 
             # Check that prefix is an str.
             if not isinstance(prefix, str):
                 # log and return the error
-                log.addtrace("invalid prefix. must be an str.")
+                log.addtrace("invalid prefix.")
                 log.flush("ERROR", "runtime terminated")
                 return {"error": f"spectral generation failed. invalid prefix. must be an str."}, 400
+
+            log.addtrace(f"prefix - {prefix}.")
 
             # Check that index is a list.
             if not isinstance(index, str):
                 # log and return the error
-                log.addtrace("invalid index. must be an str.")
+                log.addtrace("invalid index.")
                 log.flush("ERROR", "runtime terminated")
                 return {"error": f"spectral generation failed. invalid index. must be an str."}, 400
+
+            log.addtrace(f"index - {index}.")
 
         except KeyError as e:
             # log and return the error
@@ -263,8 +274,17 @@ class Spectral(flask_restful.Resource):
             log.flush("ERROR", "runtime terminated")
             return {"error": f"spectral generation failed. missing request parameter. {e}"}, 400
 
-        # Initialize Earth Engine Session
-        init() if not ee.data._initialized else None
+        log.addtrace(f"request parameters retrieved.")
+
+        try:
+            # Initialize Earth Engine Session
+            initialize(os.environ.get("GCP_PROJECT")) if not ee.data._initialized else None
+
+        except Exception as e:
+            # log and return the error
+            log.addtrace(f"{e}")
+            log.flush("ERROR", "runtime terminated")
+            return {"error": f"spectral generation failed. {e}"}, 500
 
         try:
             # Generate an Earth Engine Geometry from the bounds
@@ -285,16 +305,19 @@ class Spectral(flask_restful.Resource):
             log.flush("ERROR", "runtime terminated")
             return {"error": f"spectral generation failed. could not generate date from timestamp. {e}"}, 400
 
+        log.addtrace(f"image parameters generated.")
+
         try:
             # Generate the spectral image
-            log.addtrace(f"spectral generation for {index}.")
             image = spectral.generate_spectral_image(date, geometry, index)
 
         except Exception as e:
             # log and return the error
-            log.addtrace(f"could not generate spectral image. {e}")
+            log.addtrace(f"could not generate image. {e}")
             log.flush("ERROR", "runtime terminated")
-            return {"error": f"spectral generation failed. could not generate spectral image. {e}"}, 400
+            return {"error": f"spectral generation failed. could not generate image. {e}"}, 400
+
+        log.addtrace(f"{index} image generated.")
 
         try:
             # Append the tci asset id to the prefix
@@ -307,17 +330,19 @@ class Spectral(flask_restful.Resource):
 
         except Exception as e:
             # log and return the error
-            log.addtrace(f"could not start truecolor export. {e}")
+            log.addtrace(f"could not start export. {e}")
             log.flush("ERROR", "runtime terminated")
-            return {"error": f"truecolor generation failed. could not start truecolor export. {e}"}, 400
+            return {"error": f"spectral generation failed. could not start export. {e}"}, 500
 
         # log the task id
-        log.addtrace(f"truecolor generated and exported. export-task - {exporttask.id}")
-        log.flush("INFO", "runtime complete")
+        log.addtrace(f"image export started. export-task - {exporttask.id}")
 
         # Initialize PubSub client
         # Compose the task creation PubSub message
         # Publish the message the the 'taskstatus' PubSub topic
+
+        #log.addtrace(f"export task registered.")
+        log.flush("INFO", "runtime complete")
 
         # Return the completion response
         return {"completed": True, "export-task": exporttask.id}, 200
@@ -354,4 +379,8 @@ api.add_resource(Altitude, '/altitude')
 api.add_resource(SceneClassification, '/scl')
 
 if __name__ == '__main__':
+    # Initialize Earth Engine Session
+    initialize(os.environ.get("GCP_PROJECT")) if not ee.data._initialized else None
+
+    # Run the Flask App
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
