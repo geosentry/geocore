@@ -20,7 +20,7 @@ jobs:
 
     strategy:
       matrix:
-        services: [geocore-spatio, geocore-chrono]
+        services: [geocore-spatio, geocore-chrono, geocore-raster]
 
     steps:
       # Checkout Git Repository
