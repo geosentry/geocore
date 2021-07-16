@@ -66,30 +66,38 @@ class Geocode(flask_restful.Resource):
         request = flask.request.get_json()
         log.addtrace("request parsed.")
 
-        # Retrieve the 'coordinates' key from the request
-        coordinates = request.get("coordinates")
-        # Check that coordinates is a dictionary.
-        if not isinstance(coordinates, dict):
-            # log and return the error
-            log.addtrace("could not retrieve coordinates.")
-            log.flush("ERROR", "runtime terminated")
-            return {"error": f"geocode failed. could not retrieve coordinates. not a dictionary"}, 400
+        try:
+            # Retrieve the 'coordinates' key from the request
+            coordinates = request["coordinates"]
 
-        log.addtrace("coordinate retrieved.")
+            # Check that coordinates is a dictionary.
+            if not isinstance(coordinates, dict):
+                # log and return the error
+                log.addtrace("invalid coordinates.")
+                log.flush("ERROR", "runtime terminated")
+                return {"error": f"spatial geocode failed. invalid coordinates. not a dictionary"}, 400
 
-        # Check if coordinates contains a longitude key
-        if "longitude" not in coordinates.keys():
-            # log and return the error
-            log.addtrace("missing longitude.")
-            log.flush("ERROR", "runtime terminated")
-            return {"error": f"reshape failed. coordinates missing longitude."}, 400
+            # Check if coordinates contains a longitude key
+            if "longitude" not in coordinates.keys():
+                # log and return the error
+                log.addtrace("missing longitude.")
+                log.flush("ERROR", "runtime terminated")
+                return {"error": f"spatial geocode failed. invalid coordinates. missing longitude."}, 400
 
-        # Check if coordinates contains a latitude key
-        if "latitude" not in coordinates.keys():
+            # Check if coordinates contains a latitude key
+            if "latitude" not in coordinates.keys():
+                # log and return the error
+                log.addtrace("missing latitude.")
+                log.flush("ERROR", "runtime terminated")
+                return {"error": f"spatial geocode failed. invalid coordinates. missing latitude."}, 400
+
+        except KeyError as e:
             # log and return the error
-            log.addtrace("missing latitude.")
+            log.addtrace(f"missing request parameter {e}.")
             log.flush("ERROR", "runtime terminated")
-            return {"error": f"reshape failed. coordinates missing latitude."}, 400
+            return {"error": f"spatial geocode failed. missing request parameter. {e}"}, 400
+
+        log.addtrace(f"request parameters retrieved.")
 
         try:
             # Genertae the geocode location for the coordinates
@@ -105,7 +113,7 @@ class Geocode(flask_restful.Resource):
             # log and return the error
             log.addtrace("could not generate gecode location.")
             log.flush("ERROR", "runtime terminated")
-            return {"error": f"reshape failed. could not generate geocode location. {e}"}, 500
+            return {"error": f"spatial geocode failed. could not generate geocode location. {e}"}, 500
 
 class Reshape(flask_restful.Resource):
     """ RESTful resource for the '/reshape' endpoint. """
@@ -119,27 +127,36 @@ class Reshape(flask_restful.Resource):
         request = flask.request.get_json()
         log.addtrace("request parsed.")
 
-        # Retrieve the 'geojson' key from the request
-        geojson = request.get("geojson")
-        # Check that geojson is a dictionary.
-        if not isinstance(geojson, dict):
-            # log and return the error
-            log.addtrace("could not retrieve geojson.")
-            log.flush("ERROR", "runtime terminated")
-            return {"error": f"reshape failed. could not retrieve geojson. not a dictionary"}, 400
+        try:
+            # Retrieve the 'geojson' key from the request
+            geojson = request["geojson"]
 
-        log.addtrace("geojson retrieved.")
+            # Check that geojson is a dictionary.
+            if not isinstance(geojson, dict):
+                # log and return the error
+                log.addtrace("invalid geojson.")
+                log.flush("ERROR", "runtime terminated")
+                return {"error": f"spatial reshape failed. invalid geojson. not a dictionary"}, 400
+
+        except KeyError as e:
+            # log and return the error
+            log.addtrace(f"missing request parameter {e}.")
+            log.flush("ERROR", "runtime terminated")
+            return {"error": f"spatial reshape failed. missing request parameter. {e}"}, 400
+
+        log.addtrace("request parameters retrieved.")
 
         try:
             # Generate a shape geometry from the geojson 
             shape = spatial.generate_shape_fromgeojson(json.dumps(geojson))
-            log.addtrace("shape geometry generated.")
 
         except RuntimeError as e:
             # log and return the error
             log.addtrace("could not generate shape geometry.")
             log.flush("ERROR", "runtime terminated")
-            return {"error": f"reshape failed. could not generate shape geometry. {e}"}, 400
+            return {"error": f"spatial reshape failed. could not generate shape geometry. {e}"}, 400
+
+        log.addtrace("spatial parameters generated.")
 
         try:
             # Check the type of the shape geometry and 
@@ -160,15 +177,15 @@ class Reshape(flask_restful.Resource):
             else:
                 log.addtrace("invalid geometry detected.")
                 log.flush("ERROR", "runtime terminated")
-                return {"error": f"reshape failed. unsupported geometry type: {shape.type}"}, 400
-
-            log.addtrace("geometry reshaped.")
+                return {"error": f"spatial reshape failed. unsupported geometry type: {shape.type}"}, 400
 
         except RuntimeError as e:
             # log and return the error
             log.addtrace("could not reshape geometry.")
             log.flush("ERROR", "runtime error")
-            return {"error": f"reshape failed. could not reshape geometry. {e}"}, 500
+            return {"error": f"spatial reshape failed. could not reshape geometry. {e}"}, 500
+
+        log.addtrace("reshaped complete.")
 
         try:
             # Retrieve the bounds of the reshaped geometry
@@ -193,9 +210,9 @@ class Reshape(flask_restful.Resource):
         
         except RuntimeError as e:
             # log and return the error
-            log.addtrace("could not generate reshaped data.")
+            log.addtrace("could not generate reshaped geometry data.")
             log.flush("ERROR", "runtime error")
-            return {"error": f"reshape failed. could not generate reshaped data. {e}"}, 500
+            return {"error": f"spatial reshape failed. could not generate reshaped geometry data. {e}"}, 500
 
 
 app = flask.Flask(__name__)
