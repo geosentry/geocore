@@ -10,9 +10,8 @@ The repository contains a directory for each GeoCore service, each of which cont
 The 5 GeoCore Services are
 - **chrono**
 - **spatio**
-- **topo**
-- **spectral**
-- **analytics**
+- **raster**
+- **vector**
 
 The specs and details of each service is defined within its respective README file.
 
